@@ -56,6 +56,7 @@ cld.summary.glht <- function(object, level = 0.05, decreasing = FALSE, ...) {
   # Tidy up: ret$y[1:length(ret$x)]], cox models concatenates a vector of live/dead
   # I think this way is easier than to deal with gsub later and it's more general
   lvl_order <- levels(ret$x)[order(tapply(as.numeric(ret$y)[1:length(ret$x)], ret$x, mean))]
+  print(lvl_order)
   # names(signif) <- gsub("\\s", "", rownames(object$linfct))
   ret$signif <- signif
   ret$mcletters <- insert_absorb(signif, decreasing = decreasing, 
@@ -161,11 +162,9 @@ plot.cld <- function(x, type = c("response", "lp"), ...) {
 
 insert_absorb <- function( x, Letters=c(letters, LETTERS), separator=".", decreasing = FALSE, 
                            comps = NULL, lvl_order){
-  print('Insert absorb')
-  print(x)
+
   obj_x <- deparse(substitute(x))
-  print('obj_x')
-  print(obj_x)
+
   if (is.null(comps)) {
     namx <- names(x)
     namx <- gsub(" ", "", names(x))
@@ -179,9 +178,11 @@ insert_absorb <- function( x, Letters=c(letters, LETTERS), separator=".", decrea
   lvls <- lvl_order
   n <- length(lvls)
   lmat <- array(TRUE, dim=c(n,1), dimnames=list(lvls, NULL) )
+  print('lmat')
+  print(lmat)
   
   if( sum(x) == 0 ){                                                        # no differences
-    ltrs <- rep(get_letters(1, Letters=Letters, separator=separator), length(lvls) )
+    ltrs <- rep(get_letters(1, Letters=Letters, separator=separator), length(lvls))
     names(ltrs) <- lvls
     colnames(lmat) <- ltrs[1]
     msl <- ltrs
@@ -191,7 +192,6 @@ insert_absorb <- function( x, Letters=c(letters, LETTERS), separator=".", decrea
   }
   else{
     signifs <- comps[x,,drop=FALSE]
-    
     absorb <- function(m){
       for(j in 1:(ncol(m)-1)){
         for(k in (j+1):ncol(m)){
@@ -207,13 +207,22 @@ insert_absorb <- function( x, Letters=c(letters, LETTERS), separator=".", decrea
       }
       return(m)
     }
+    print('printing signifs: ')
+    print(signifs)
     for( i in 1:nrow(signifs) ){                                            # insert
       tmpcomp <- signifs[i,]
+      print('printing lmat: ')
+      print(lmat)
       wassert <- which(lmat[tmpcomp[1],] & lmat[tmpcomp[2],])               # which columns wrongly assert nonsignificance
+      print('wassert')
+      print(wassert)
       if(any(wassert)){
         tmpcols <- lmat[,wassert,drop=FALSE]
+        print(tmpcols)
         tmpcols[tmpcomp[2],] <- FALSE
+        print(tmpcols)
         lmat[tmpcomp[1],wassert] <- FALSE
+        print(lmat)
         lmat <- cbind(lmat, tmpcols)
         colnames(lmat) <- get_letters( ncol(lmat), Letters=Letters,
                                        separator=separator)
@@ -260,6 +269,23 @@ insert_absorb <- function( x, Letters=c(letters, LETTERS), separator=".", decrea
                aLetters = Letters, aseparator = separator )
   class(ret) <- "multcompLetters"
   return(ret)
+}
+
+get_letters <- function( n, Letters=c(letters, LETTERS), separator="." ){
+  
+  n.complete <- floor(n / length(Letters))        # number of complete sets of Letters
+  n.partial <- n %% length(Letters)               # number of additional Letters
+  lett <- character()
+  separ=""
+  if( n.complete > 0 ){
+    for( i in 1:n.complete ){
+      lett <- c(lett, paste(separ, Letters, sep="") )
+      separ <- paste( separ, separator, sep="" )
+    }
+  }
+  if(n.partial > 0 )
+    lett <- c(lett, paste(separ, Letters[1:n.partial], sep="") )
+  return(lett)
 }
 
 ### multiple comparison procedures
