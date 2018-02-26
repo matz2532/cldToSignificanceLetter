@@ -12,7 +12,12 @@ def cld_summary(df, x):
     """
         Do some more magic stuff
     """
-    insert(data=df)
+    df = insert(data=df)
+    dups = absorb(df=df)
+    if len(dups) > 0:
+        df = df.drop(dups, axis=1)
+    else:
+        pass
 
     pass
 
@@ -44,8 +49,8 @@ def insert(data):
 
             # get the columns to duplicate from df by testing that signif_1 row and signif_2 row are both equal to 1
             test = df.loc[[signif_1, signif_2]]
+            cols_to_dup = []
             for col in test.columns:
-                cols_to_dup = []
                 if test[col].sum() == 2:
                     cols_to_dup.append(col)
                 else:
@@ -54,6 +59,7 @@ def insert(data):
             # duplicate the dataframes
             df1 = df[cols_to_dup]
             df2 = df[cols_to_dup]
+            df3 = df[df.columns].drop(labels=cols_to_dup, axis=1)
 
             #set the 1's and 0's
             df1.loc[signif_1] = 1
@@ -63,22 +69,38 @@ def insert(data):
             df2.loc[signif_2] = 1
 
 
-            #merge the duplicate dataframes
-            letters = get_letters(n=len(cols_to_dup)*2)
+            #merge the duplicate dataframes back to the original with any unduped columns
             df = df1.merge(df2, left_index=True, right_index=True)
+            df = df.merge(df3, left_index=True, right_index=True)
+            letters = get_letters(n=len(df.columns))
             df.columns = letters
             print(df)
+            new_cols = []  #  list of the new columns to check for duplication.
+
+    return df
 
 
-    pass
-
-
-def absorb():
+def absorb(df):
     """
         Check each new column against all old columns.  If its a duplicate we can drop it i.e. "absorb" it.
     """
+    groups = df.columns.to_series().groupby(df.dtypes).groups
+    print(groups)
+    dups = []
+    for t, v in groups.items():
+        dcols = df[v].to_dict(orient="list")
 
-    pass
+        vs = list(dcols.values())
+        ks = list(dcols.keys())
+        lvs = len(vs)
+
+        for i in range(lvs):
+            for j in range(i+1,lvs):
+                if vs[i] == vs[j]: 
+                    dups.append(ks[i])
+                    break
+    print(dups)
+    return dups  
 
 
 def sweep():
