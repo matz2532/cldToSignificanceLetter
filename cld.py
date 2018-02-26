@@ -11,7 +11,7 @@ LETTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
 
 def main(df, x):
     """
-        Main method
+        Do some more magic stuff
     """
     df = insert(data=df)
 
@@ -34,7 +34,7 @@ def main(df, x):
 
 def insert(data):
     """
-        Insert phase of algorithm.  Duplicate columns for significant differences and then swap boolean values around
+        Insert phase of algortihm.  Duplicate columns for significant differences and then swap boolean values around
     """
     unique = list(set(list(data['product_1'])))
     initial_col = [1] * len(unique)
