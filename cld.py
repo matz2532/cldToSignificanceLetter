@@ -132,6 +132,8 @@ def sweep(df):
         # get the pairs to check for each positive record
         for i in index:
             pairs = [(i, x) for x in index if x != i]
+            if len(pairs) == 0:
+                continue
             check = {}
             lock_index = {}  # Get the index we need to lock
             for pair in pairs:
