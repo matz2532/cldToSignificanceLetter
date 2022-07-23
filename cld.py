@@ -1,19 +1,21 @@
-import pandas as pd 
+import pandas as pd
 import numpy as np
 import math
 import itertools
 
-df = pd.read_csv('input.csv', index_col=0)
-LETTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 
+"""
+code adapted from https://github.com/lfyorke/cld
+generalising column names to select for cld caclulations
+using methodology from http://www.akt.tu-berlin.de/fileadmin/fg34/publications-akt/letter-displays-csda06.pdf
+"""
+LETTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
 
-
-
-def main(df, x):
+def createCompactLetterDisplay(df, col1='product_1', col2='product_2', rejectCol='reject H0', groupNameCol='group name'):
     """
         Do some more magic stuff
     """
-    df = insert(data=df)
+    df = insert(data=df, col1=col1, col2=col2, rejectCol=rejectCol, groupNameCol=groupNameCol)
 
     dups = absorb(df=df)  # absorb before sweep
     if len(dups) > 0:
@@ -32,29 +34,29 @@ def main(df, x):
     return df
 
 
-def insert(data):
+def insert(data, col1='product_1', col2='product_2', rejectCol='reject H0', groupNameCol='group name'):
     """
         Insert phase of algortihm.  Duplicate columns for significant differences and then swap boolean values around
     """
-    unique = list(set(list(data['product_1'])))
+    unique = list(set(list(data[col1])))
     initial_col = [1] * len(unique)
     df = pd.DataFrame(initial_col, columns=['initial_col'])
-    df['product'] = unique
-    df = df.set_index('product')
+    df[groupNameCol] = unique
+    df = df.set_index(groupNameCol)
 
     # get the significant differences.
-    signifs = data[data['reject H0'] == True]
+    signifs = data[data[rejectCol] == True]
 
-    if not any(data['reject H0']):  # case wheres theres no significant differences we end up with one group.
+    if not any(data[rejectCol]):  # case wheres theres no significant differences we end up with one group.
         groups = get_letters(1)
         df[groups[0]] = 1
         df = df.drop(labels='initial_col', axis=1)
         return df
     else:           # every other case
         #do the insert
-        for i, signif in enumerate(signifs['product_1']):
+        for i, signif in enumerate(signifs[col1]):
             signif_1 = signif
-            signif_2 = signifs['product_2'].iloc[i]
+            signif_2 = signifs[col2].iloc[i]
 
             # get the columns to duplicate from df by testing that signif_1 row and signif_2 row are both equal to 1
             test = df.loc[[signif_1, signif_2]]
@@ -103,10 +105,10 @@ def absorb(df):
 
         for i in range(lvs):
             for j in range(i+1,lvs):
-                if vs[i] == vs[j]: 
+                if vs[i] == vs[j]:
                     dups.append(ks[i])
                     break
-    return dups  
+    return dups
 
 
 def sweep(df):
@@ -154,7 +156,7 @@ def sweep(df):
                         break
 
             if len(set(check.values())) == 1  & list(set(check.values()))[0] == 1: # if all pairs exists and are 1 our entry is redundant and should be deleted
-                
+
 
                 data[col].loc[list(check.keys())[0][0]] = 0  # turn the 1 to a zero
 
@@ -188,5 +190,6 @@ def get_letters(n, letters=LETTERS, sep='.'):
 
 
 if __name__ == "__main__":
-    df = main(df, 'reject H0')
+    df = pd.read_csv('input.csv', index_col=0)
+    df = createCompactLetterDisplay(df, 'product_1', col2='product_2', rejectCol='reject H0')
     print(df)
