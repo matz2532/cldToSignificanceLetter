@@ -40,6 +40,8 @@ def insert(data, col1='product_1', col2='product_2', rejectCol='reject H0', grou
         Insert phase of algortihm.  Duplicate columns for significant differences and then swap boolean values around
     """
     unique = list(set(list(data[col1])))
+    unique2 = list(set(list(data[col2])))
+    unique = list(set(np.concatenate([unique, unique2])))
     initial_col = [1] * len(unique)
     df = pd.DataFrame(initial_col, columns=['initial_col'])
     df[groupNameCol] = unique
