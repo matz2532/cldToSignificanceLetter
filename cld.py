@@ -6,10 +6,62 @@ import itertools
 """
 code adapted from https://github.com/lfyorke/cld
 generalising column names to select for cld caclulations
+create goup letters from cld df,
+where non-overlapping letters indicate significant difference between groups
+e.g., group1 vs group2 H0 rejected, group1 vs group3 H0 not rejected, group2 vs group3 H0 not rejected
+group1 = a,  group2 = b, group3 = ab
 using methodology from http://www.akt.tu-berlin.de/fileadmin/fg34/publications-akt/letter-displays-csda06.pdf
 """
 LETTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+
+def calcGroupLetters(df, col1='product_1', col2='product_2', rejectCol='reject H0', groupNameCol='group name', orderGroupsAlong=None):
+    cldDf = createCompactLetterDisplay(df, col1=col1, col2=col2, rejectCol=rejectCol, groupNameCol=groupNameCol)
+    groupLetters = calcLettersFromCldTable(cldDf, orderGroupsAlong=orderGroupsAlong)
+    return groupLetters
+
+def calcLettersFromCldTable(compactLetterDisplayDf, orderGroupsAlong=None):
+    """
+    create goup letters from cld df
+    """
+    if not orderGroupsAlong is None:
+        # order group names after occurence to switch order and therefore letter occurence
+        groupNameMapping = {groupName:i for i, groupName in enumerate(orderGroupsAlong)}
+        compactLetterDisplayDf = (compactLetterDisplayDf.assign(key1=compactLetterDisplayDf.index.map(groupNameMapping))
+                .sort_values(['key1'])
+                .drop(['key1'], axis=1))
+    orderedLetters = list(compactLetterDisplayDf.columns).copy()
+    compactLetterDisplayDf = sortColumnsByFirstOnes(compactLetterDisplayDf)
+    compactLetterDisplayDf.columns = orderedLetters
+    groupLetters = {}
+    columnLetters = compactLetterDisplayDf.columns.to_numpy()
+    for i, groupName in enumerate(compactLetterDisplayDf.index):
+        lettersOfGroup = columnLetters[compactLetterDisplayDf.iloc[i] == 1]
+        groupLetters[groupName] = "".join(lettersOfGroup)
+    return groupLetters
+
+def sortColumnsByFirstOnes(df):
+    nrOfRows, nrOfCol = df.shape
+    alreadySwitchedCol = []
+    counter = 0
+    newColIdx = np.arange(nrOfCol)
+    for i in range(nrOfRows):
+        isColValue = np.isin(df.iloc[i, :], 1)
+        if np.any(isColValue):
+            toOrderIdx = np.where(isColValue)[0]
+            for newIdx in toOrderIdx:
+                if not newIdx in alreadySwitchedCol:
+                    newColIdx[counter] = newIdx
+                    alreadySwitchedCol.append(newIdx)
+                    counter += 1
+    notSwitchedCol = np.arange(nrOfCol)[np.isin(np.arange(nrOfCol), alreadySwitchedCol, invert=True)]
+    for newIdx in notSwitchedCol:
+        newColIdx[counter] = newIdx
+        alreadySwitchedCol.append(newIdx)
+        counter += 1
+    df = df.iloc[:, newColIdx]
+    return df
+
 
 def createCompactLetterDisplay(df, col1='product_1', col2='product_2', rejectCol='reject H0', groupNameCol='group name'):
     """
@@ -196,5 +248,11 @@ def get_letters(n, letters=LETTERS, sep='.'):
 
 if __name__ == "__main__":
     df = pd.read_csv('input.csv', index_col=0)
-    df = createCompactLetterDisplay(df, 'product_1', col2='product_2', rejectCol='reject H0')
-    print(df)
+    cldDf = createCompactLetterDisplay(df, 'product_1', col2='product_2', rejectCol='reject H0')
+    print(cldDf)
+    groupLetters = calcGroupLetters(df, 'product_1', col2='product_2', rejectCol='reject H0')
+    print(groupLetters)
+    orderGroupsAlong = ['Blanche de Brussel                   ', 'Amstel Weiss                         ', 'Edelweiss Weissbier                  ', 'Erdinger Weiss                       ', 'Franziskaner Hefe-Weissbier NaturtrÃ¼b', 'Hoegaarden Blanc                     ', 'Khamovniki Weissbier                 ', 'Uzberg Weissbier                     ']
+    print(f"alternative ordering with {orderGroupsAlong[0]} as the first entry also having the first occuring letter")
+    groupLetters = calcGroupLetters(df, 'product_1', col2='product_2', rejectCol='reject H0', orderGroupsAlong=orderGroupsAlong)
+    print(groupLetters)
