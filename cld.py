@@ -31,6 +31,7 @@ def createCompactLetterDisplay(df, col1='product_1', col2='product_2', rejectCol
     else:
         pass
 
+    df.columns = LETTERS[:len(list(df.columns))]
     return df
 
 
